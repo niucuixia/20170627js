@@ -1,0 +1,75 @@
+<style>
+    form{
+		  display: inline-block;
+		  height:25px;
+	    line-height: 25px;
+	    margin-bottom: 5px !important;
+	    margin-top:0;
+	    vertical-align: top;
+	    padding: 0;
+	  }
+	  .file {
+	    position: relative;
+	    display: inline-block;
+	    background: #D0EEFF;
+	    border: 1px solid #99D3F5;
+	    border-radius: 4px !important;
+	    padding: 0 8px;
+	    overflow: hidden;
+	    color: #1E88C7;
+	    text-decoration: none;
+	    text-indent: 0;
+	  }
+    .file:hover {
+      background: #AADFFD;
+      border-color: #78C3F3;
+      color: #004974;
+      text-decoration: none;
+    }
+    .file input {
+      position: absolute;
+      font-size: 100px;
+      right: 0;
+      top: 0;
+      opacity: 0;
+    }
+</style>
+
+// vue写法
+<form  method="POST" enctype="multipart/form-data" action={{uploadUrl}}>
+  <a href="javascript:;" class="file">上传图片
+      <input type="file" name="file" id="file" onchange="uploadImg(this)">
+  </a>
+</form>
+
+<script>
+  // 上传图片
+    function uploadImg(target) {
+      //1、判断图片大小：不能大于1M；
+      var picSize = target.files[0].size/ 1024 / 1024;
+      if(picSize > 1){
+        alert('图片大小不能大于1M');
+        return;
+      }
+      // vue-resource
+      var file = document.getElementById('file').files[0]
+      var formData = new FormData(document.getElementById('file'))
+      formData.append('file', file, file.name)
+      this.$http.post(Vue.baseUrl2 + '/adminAPI/upload/img', formData, {
+        params: {
+          type: '1'
+        }
+      }).then((response) => {
+        // console.log(response)
+        if (response.status === 200) {
+          this.icon = response.body
+          this.show = true
+        } else {
+          this.show = false
+          console.log('上传菜品图片失败')
+        }
+      }, (response) => {
+        console.log('error上传图片' + response)
+      })
+    };
+</script>
