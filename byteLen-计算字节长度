@@ -1,0 +1,44 @@
+// tips:1个英文字符 = 1个字节，1个汉字 = 2个字节
+//中文字符占用多少个字节是与编码有关的，一般情况下，GB-2312和UTF-8编码中，中文字符占用2个字节，但是在iso-8859-1编码中，中文字符占用5个字节
+//1、正则表达式检测字符串的字节长度：
+var byteLen = function(str){
+
+    return str.replace(/[^\x00-\xFF]/g,'**').length;
+
+};
+
+//2、for循环检测字符串的字节长度：
+
+var lenFor = function(str){
+
+    var byteLen=0,len=str.length;
+
+    if(str){
+
+        for(var i=0; i<len; i++){
+
+            if(str.charCodeAt(i)>255){
+
+                byteLen += 2;
+
+            }
+
+            else{
+
+                byteLen++;
+
+            }
+
+        }
+
+        return byteLen;
+
+    }
+
+    else{
+
+        return 0;
+
+    }
+
+}
