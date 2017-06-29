@@ -20,7 +20,7 @@
             var right = [];
 
             for(var i=0;i<arr.length;i++){
-                if(arr[i]<numValue){
+                if(arr[i]<numValue){ // 从小到大排序---如果从大到小排序则改为arr[i] > numValue
                     left.push(arr[i]);//基准点的左边的数传到左边数组
                 }
                 else{
