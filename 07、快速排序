@@ -28,7 +28,7 @@
                 }
             }
 
-            return quickSort(left).concat([numValue],quickSort(right));//递归不断重复比较
+            return quickSort(left).concat(numValue,quickSort(right));//递归不断重复比较
         }
 
         alert(quickSort([32,45,37,16,2,87]));//弹出“2,16,32,37,45,87”
