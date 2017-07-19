@@ -47,4 +47,4 @@ ps:  1、解决ios 和 android 的兼容问题，ios端只会上传最后一张�
 				          upload();
 				    }
 				});
-		  }
+		  };
