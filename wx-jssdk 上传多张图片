@@ -1,0 +1,45 @@
+//1、 第一步先要初始化微信
+		  try{tools.initWeiXin(addr);}catch(e){console.log(e);} 
+//2、选择图片---调用wx.chooseImage()方法
+//3、调用wx.uploadImage()方法
+		  var chooseImage = function(_obj){
+			  wx.chooseImage({
+				    count: 3, // 默认9
+				    sizeType: ['compressed'], // 可以指定是原图还是压缩图，默认二者都有
+				    sourceType: ['album', 'camera'], // 可以指定来源是相册还是相机，默认二者都有
+				    success: function (res) {
+				        var localIds = res.localIds; // 返回选定照片的本地ID列表，localId可以作为img标签的src属性显示图片
+				        var i= 0, length = localIds.length;
+				        function upload() {
+			            	wx.uploadImage({
+					            localId: localIds[i], // 需要上传的图片的本地ID，由chooseImage接口获得
+					            isShowProgressTips: 1, // 默认为1，显示进度提示
+					            success: function (res) {
+					                var serverId = res.serverId; // 返回图片的服务器端ID
+					                i++;
+					                if (i < length) {
+					                    upload();
+				                  	}
+					                addr.uploadImg("serverId="+serverId+"&module=cre",function(data){
+					                	var str = '';
+										str += '<div style="color:#fff;">' 
+												   +'<img src="'+ data.imgUrl +'"/>'
+												   +'<span class="delImg">x</span>'
+									 		+ '</div><i></i>' //</div>后边的<i></i>不可删掉 作为split 分割标识
+									 	if(window.localStorage.getItem('imagesStr')){
+									 		window.localStorage.setItem('imagesStr', window.localStorage.getItem('imagesStr') + str);
+									 	}else{ // 第一次存储
+									 		window.localStorage.setItem('imagesStr', str);
+									 	}
+										$(_obj).append(str);
+					                });
+					            },
+					            fail: function (res) {
+					            	tools.toastTip("","上传失败，请稍后重试");
+					            }
+					        });
+				          };
+				          upload();
+				    }
+				});
+		  }
