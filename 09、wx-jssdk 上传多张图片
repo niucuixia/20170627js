@@ -1,3 +1,8 @@
+ps:  1、解决ios 和 android 的兼容问题，ios端只会上传最后一张图片；
+     2、不能用循环方法（for，each...） 调用wx.uploadImage()方法，因为ios不执行；
+     3、定义一个变量i，通过i++，判断i的值是否大于wx.chooseImage()返回的res.localIds的length，如果不大于 则自身调用upload方法，否则不调用；
+
+
 //1、 第一步先要初始化微信
 		  try{tools.initWeiXin(addr);}catch(e){console.log(e);} 
 //2、选择图片---调用wx.chooseImage()方法
