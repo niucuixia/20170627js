@@ -1,4 +1,4 @@
-//1、数组顺序打乱
+//1、数组顺序打乱 
 function upsetArr(arr){
     return arr.sort(function(){ return Math.random() - 0.5});
 }
