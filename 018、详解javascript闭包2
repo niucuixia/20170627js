@@ -1,0 +1,514 @@
+什么是闭包？
+
+闭包是 JavaScript (以及其他大多数编程语言) 的一个极其强大的属性。正如在MDN (Mozilla Developer Network) 中定义的那样：
+
+闭包是指能够访问自由变量的函数。换句话说，在闭包中定义的函数可以“记忆”它被创建的环境。
+注：自由变量是既不是在本地声明又不作为参数传递的一类变量。（译者注：如果一个作用域中使用的变量并不是在该作用域中声明的，那么这个变量对于该作用域来说就是自由变量）
+
+让我们来看一些例子：
+
+Example 1:
+
+Function numberGenerator() {
+  // Local “free” variable that ends up within the closure
+  var num = 1;
+  function checkNumber() {
+    console.log(num);
+  }
+  num++;
+  return checkNumber;
+}
+var number = numberGenerator();
+number(); // 2
+
+在 GitHub 上查看 rawnumberGenerator.js 
+
+在以上例子中，numberGenerator 函数创建了一个局部的自由变量 num (一个数字) 和 checkNumber 函数 (一个在控制台打印 num 的函数)。checkNumber 函数没有自己的局部变量，但是，由于使用了闭包，它可以通过 numberGenerator 这个外部函数来访问（外部声明的）变量。因此即使在 numberGenerator 函数被返回以后，checkNumber 函数也可以使用 numberGenerator 中声明的变量 num 从而成功地在控制台记录日志。
+
+Example 2:
+
+function sayHello() {
+  var say = function() { console.log(hello); }
+  // Local variable that ends up within the closure
+  var hello = 'Hello, world!';
+  return say;
+}
+var sayHelloClosure = sayHello();
+sayHelloClosure(); // ‘Hello, world!’
+
+在 GitHub 上查看 rawsayHello.js
+
+在这个例子中我们演示了一个闭包包含了外围函数中声明的全部局部变量。
+
+请注意，变量 hello 是在匿名函数之后定义的，但是该匿名函数仍然可以访问到 hello 这个变量。这是因为变量hello在创建这个函数的“作用域”时就已经被定义了，这使得它在匿名函数最终执行的时候是可用的。（不必担心，我会在本文的后面解释“作用域”是什么，现在暂时跳过它！）
+
+深入理解闭包
+
+这些例子从更深层次阐述了什么是闭包。总体来说情况是这样的：即使声明这些变量的外围函数已经返回以后，我们仍然可以访问在外围函数中声明的变量。显然，在这背后有一些事情发生了，使得这些变量在外围函数返回值以后仍然可以被访问到。
+
+为了理解这是如何发生的，我们需要接触到几个相关的概念——从3000英尺的高空（抽象的概念）逐步地返回到闭包的“陆地”上来。让我们从函数运行中最重要的内容——“执行上下文”开始吧！
+
+Execution Context   执行上下文
+
+执行上下文是一个抽象的概念，ECMAScript 规范使用它来追踪代码的执行。它可能是你的代码第一次执行或执行的流程进入函数主体时所在的全局上下文。
+
+
+
+执行上下文
+
+在任意一个时间点，只能有唯一一个执行上下文在运行之中。这就是为什么 JavaScript 是“单线程”的原因，意思就是一次只能处理一个请求。一般来说，浏览器会用“栈”来保存这个执行上下文。栈是一种“后进先出” (Last In First Out) 的数据结构，即最后插入该栈的元素会最先从栈中被弹出（这是因为我们只能从栈的顶部插入或删除元素）。当前的执行上下文，或者说正在运行中的执行上下文永远在栈顶。当运行中的上下文被完全执行以后，它会由栈顶弹出，使得下一个栈顶的项接替它成为正在运行的执行上下文。
+
+除此之外，一个执行上下文正在运行并不代表另一个执行上下文需要等待它完成运行之后才可以开始运行。有时会出现这样的情况，一个正在运行中的上下文暂停或中止，另外一个上下文开始执行。暂停的上下文可能在稍后某一时间点从它中止的位置继续执行。一个新的执行上下文被创建并推入栈顶，成为当前的执行上下文，这就是执行上下文替代的机制。
+
+
+
+以下是这个概念在浏览器中的行为实例：
+
+var x = 10;
+function foo(a) {
+  var b = 20;
+  function bar(c) {
+    var d = 30;
+    return boop(x + a + b + c + d);
+  }
+  function boop(e) {
+    return e * -1;
+  }
+  return bar;
+}
+var moar = foo(5); // Closure
+/*
+  The function below executes the function bar which was returned
+  when we executed the function foo in the line above. The function bar
+  invokes boop, at which point bar gets suspended and boop gets push
+  onto the top of the call stack (see the screenshot below)
+*/
+moar(15);
+
+在 GitHub 上查看 rawexecutionContext.js
+
+
+
+当 boop 返回时，它会从栈中弹出，bar 函数会恢复运行：
+
+
+
+当我们有很多执行上下文一个接一个地运行时——通常情况下会在中间暂停然后再恢复运行——为了能很好地管理这些上下文的顺序和执行情况，我们需要用一些方法来对其状态进行追踪。而实际上也是如此，根据ECMAScript的规范，每个执行上下文都有用于跟踪代码执行进程的各种状态的组件。包括：
+
+代码执行状态：任何需要开始运行，暂停和恢复执行上下文相关代码执行的状态
+函数：上下文中正在执行的函数对象（正在执行的上下文是脚本或模块的情况下可能是null）
+Realm：一系列内部对象，一个ECMAScript全局环境，所有在全局环境的作用域内加载的ECMAScript代码，和其他相关的状态及资源。
+词法环境：用于解决此执行上下文内代码所做的标识符引用。
+变量环境：一种词法环境，该词法环境的环境记录保留了变量声明时在执行上下文中创建的绑定关系。
+如果以上这些让你读起来很困惑，不必担心。在所有变量之中，词法环境变量是我们最感兴趣的一个，因为它明确声明它解决了这个执行上下文内代码中的“标识符引用”。你可以把“标识符”想成是变量。由于我们最初的目的就是弄清楚它是如何做到在一个函数（或“上下文”）返回以后还能神奇地访问变量，因此词法环境看起来就是我们需要深入挖掘的东西！
+
+注意：从技术上来说，变量环境和词法环境都是用来实现闭包的，但为了简单起见，我们将这二者归纳为“环境”。想了解关于词法环境和变量环境的区别的更详尽的解释，可以参看 Alex Rauschmayer 博士这篇非常棒的文章。
+
+词法环境
+
+定义：词法环境是一个基于 ECMAScript 代码的词法嵌套结构来定义特定变量和函数标识符的关联的规范类型。词法环境由一个环境记录及一个可能为空的对外部词法环境的引用构成。通常，一个词法环境会与ECMAScript代码的一些特定语法结构相关联，例如：FunctionDeclaration（函数声明）, BlockStatement（块语句）, TryStatement（Try语句）的Catch clause（Catch子句）。每当此类代码执行时，都会创建一个新的词法环境。— ECMAScript-262/6.0
+
+让我们来把这个概念分解一下。
+
+“用于定义标识符的关联”：词法环境目的就是在代码中管理数据（即标识符）。换句话说，它给标识符赋予了含义。比如当我们写出这样一行代码 “log(x /10)”，如果我们没有给变量x赋予一些含义（声明变量 x），那么这个变量（或者说标识符）x 就是毫无意义的。词法环境就通过它的环境记录（参见下文）提供了这个含义（或“关联”）。
+“词法环境包含一个环境记录”：环境记录保留了所有存在于该词法环境中的标识符及其绑定的记录。每一个词法环境都有它自己的环境记录。
+“词法嵌套结构”：这是最有趣的部分，它大致说明了一个内部环境引用了包围它的外部环境，同时，这个外部环境还可以有它自己的外部环境。结果就是，一个环境可以作为外部环境服务于多个内部环境。全局环境是唯一一个没有外部环境的词法环境。这里会有一点难理解，让我们来用一个比喻：把词法环境想成是洋葱的层，全局环境是洋葱的最外层，随后的每一层都依次被嵌套在内部。
+
+
+Source: http://4.bp.blogspot.com/
+
+抽象地来说，（嵌套的）环境就像下面的伪代码中表现的这样：
+
+LexicalEnvironment = {
+  EnvironmentRecord: {
+  // Identifier bindings go here
+  },
+  // Reference to the outer environment
+  outer: < >
+};
+
+
+在 GitHub 上查看 rawlexicalEnv.js
+
+“每当此类代码执行时，就会创建一个新的词法环境”：每次一个外围函数被调用时，就会创建一个新的词法环境。这很重要——我们会在文末再回到这一点。（边注：函数并不是创建词法环境的唯一途径。其他途径包括：块语句或 catch 子句。为简单起见，我会在本文中将重点放在通过函数创建环境）
+总之，每个执行上下文都有一个词法环境。这个词法环境保留了变量和与其相关联的值，以及对其外部环境的引用。词法环境可以是全局环境，模块的环境（包含一个模块的顶级声明的绑定），或是函数的环境（该环境随着函数的调用而创建）。
+
+作用域链
+
+基于以上概念，我们知道了一个环境可以访问它的父环境，并且该父环境还可以继续访问它的父环境，以此类推。每个环境能够访问的一系列标识符，我们称其为“作用域”。我们可以将多个作用域嵌套到一个环境的分级链式结构中，即“作用域链”。
+
+让我们来看这种嵌套结构的一个例子：
+
+在 GitHub 上查看 rawnesting.js
+
+
+var x = 10;
+function foo() {
+  var y = 20; // free variable
+  function bar() {
+    var z = 15; // free variable
+    return x + y + z;
+  }
+  return bar;
+}
+
+可以看到，bar 嵌套在 foo 之中。为了帮助你更清晰地看到嵌套结构，请看下方图解：
+
+
+
+我们会在本文的后面重温这个例子。
+
+这个作用域链，或者说与函数相关联的环境链，在函数被创建时就被保存在函数对象当中。换句话说，它按照位置被静态地定义在源代码内部。（这也被称为“词法作用域”。）
+
+让我们来快速地绕个路，来理解一下“动态作用域”和“静态作用域”的区别。它讲帮助我们阐明为什么想实现闭包，静态作用域（或词法作用域）是必不可少的。
+
+动态作用域 vs. 静态作用域
+
+动态作用域的语言“基于栈来实现”，意思就是函数的局部变量和参数都储存在栈中。因此，程序堆栈的运行状态决定你引用的是什么变量。
+
+另一方面，静态作用域是指当创建上下文时，被引用的变量就被记录在其中。也就是说，这个程序的源代码结构决定你指向的是什么变量。
+
+此刻你可能会想动态作用域和静态作用域究竟有何不同。在此我们借助两个例子来说明：
+
+Example 1:
+
+在 GitHub 上查看  rawstaticvsdynamic1.js
+
+
+var x = 10;
+function foo() {
+  var y = x + 5;
+  return y;
+}
+function bar() {
+  var x = 2;
+  return foo();
+}
+function main() {
+  foo(); // Static scope: 15; Dynamic scope: 15
+  bar(); // Static scope: 15; Dynamic scope: 7
+  return 0;
+}
+
+从上述代码我们看到，当调用函数 bar 的时候，静态作用域和动态作用域返回了不同的值。
+
+在静态作用域中，bar 的返回值是基于函数 foo 创建时 x 的值。这是因为源代码的静态和词法的结构导致 x 是 10 而最终结果是 15.
+
+而另一方面，动态作用域给了我们一个在运行时追踪变量定义的栈——因此，由于我们使用的 x 在运行时被动态地定义，所以它的值取决于 x 在当前作用域中的实际的定义。函数 bar 在运行时将 x=2 推入栈顶，从而使得 foo 返回 7.
+
+Example 2:
+
+var myVar = 100;
+function foo() {
+  console.log(myVar);
+}
+foo(); // Static scope: 100; Dynamic scope: 100
+(function () {
+  var myVar = 50;
+  foo(); // Static scope: 100; Dynamic scope: 50
+})();
+// Higher-order function
+(function (arg) {
+  var myVar = 1500;
+  arg();  // Static scope: 100; Dynamic scope: 1500
+})(foo);
+
+在 GitHub 上查看 rawstaticvsdynamic2.js
+
+类似地，在以上动态作用域的例子中，变量 myVar 是通过被调用的函数中（动态定义）的 myVar 来解析的 ，而相对静态作用域来说，myVar 解析为在创建时即储存于两个立即调用函数(IIFE, Immediately Invoked Function Expression)的作用域中的变量。
+
+可以看到，动态作用域通常会导致一些歧义。它没有明确自由变量会从哪个作用域被解析。
+
+闭包
+
+你可能会认为以上讨论是题外话，但事实上，我们已经覆盖了需要用来理解闭包的所有（知识）：
+
+每个函数都有一个执行上下文，它包括一个在函数中能够赋予变量含义的环境和一个对其父环境的引用。对父环境的引用使得它父环境中的所有变量可以用于内部函数，无论内部函数是在创建它们（这些变量）的作用域以外还是以内调用的。
+
+因此，这看起来就像是函数会“记得”这个环境（或者说作用域），因为字面上来看函数能够引用环境（和环境中定义的变量）！
+
+让我们回到这个嵌套结构的例子
+
+在 GitHub 上查看 rawnesting2.js
+
+
+var x = 10;
+function foo() {
+   var y = 20; // free variable
+   function bar() {
+    var z = 15; // free variable
+    return x + y + z;
+  }
+  return bar;
+}
+var test = foo();
+test(); // 45
+
+基于我们对环境如何运作的理解，我们可以说，在上述例子中环境的定义看起来就像是以下代码中这样的（注意，这只是伪代码而已）：
+
+GlobalEnvironment = {
+  EnvironmentRecord: {
+    // built-in identifiers
+    Array: '<func>',
+    Object: '<func>',
+    // etc..
+    // custom identifiers 
+    x: 10 
+  }, 
+  outer: null 
+};
+fooEnvironment = {
+  EnvironmentRecord: {
+    y: 20,
+    bar: '<func>' 
+  }
+  outer: GlobalEnvironment
+};
+barEnvironment = {
+  EnvironmentRecord: {
+    z: 15
+  }
+  outer: fooEnvironment
+};
+
+
+在 GitHub 上查看 rawnestingEnv.js
+
+当我们调用函数test，我们得到的值是 45，它也是调用函数 bar 的返回值（因为 foo 返回函数 bar）。即使 foo 已经返回了值，但是 bar 仍然可以访问自由变量 y，因为 bar 通过外部环境引用 y，这个外部环境即 foo 的环境！bar 还可以访问全局变量 x，因为 foo 的环境通向全局环境。这叫做“作用域链查找”。
+
+回到我们关于动态作用域和静态作用域的讨论：为了实现闭包，我们不能经由一个动态的栈来储存变量（不能使用动态作用域）。原因是，这（使用动态作用域）意味着当一个函数返回时，变量将会从栈中弹出并且不再可用——这与我们最初定义的闭包相互矛盾。真正的情况应该正相反，闭包中父上下文的数据储存于“堆”（heap，一种数据结构）中，它允许数据在调用的函数返回（也就是在执行上下文在执行调用的栈中弹出）以后仍然能够保留。
+
+明白了吗？好的！既然我们已经从抽象的层面理解了内在含义，让我们来多看几个例子：
+
+Example 1:
+
+我们在 for-loop 中试图将其中的计数变量和其它函数关联在一起时的一个典型的例子/错误：
+
+var result = [];
+for (var i = 0; i < 5; i++) {
+  result[i] = function () {
+    console.log(i);
+  };
+}
+result[0](); // 5, expected 0
+result[1](); // 5, expected 1
+result[2](); // 5, expected 2
+result[3](); // 5, expected 3
+result[4](); // 5, expected 4
+
+在 GitHub 上查看 rawforloopwrong.js
+
+回顾我们刚刚学习的知识，就会超级容易看出这里的错误！用伪代码来分析，当 for-loop 存在时，它的环境看起来是这样的：
+
+environment: {
+  EnvironmentRecord: {
+    result: [...],
+    i: 5
+  },
+  outer: null,
+}
+
+在 GitHub 上查看 rawforloopwrongenv.js
+
+这里错误的假设就是，在结果（result）数列中，五个函数的作用域是不同的。事实上正相反，实际上五个函数的环境（上下文/作用域）全部相同。因此，每次变量i增加时，作用域都会更新——这个作用域被所有函数共享。这就是为什么这五个函数中的任意一个在访问i时都返回 5（i 在 for-loop 存在时等于 5）。
+
+一个解决办法就是为每个函数创建一个额外的封闭环境，使得它们各自都有自己的执行上下文/作用域。
+
+var result = [];
+for (var i = 0; i < 5; i++) {
+  result[i] = (function inner(x) {
+    // additional enclosing context
+    return function() {
+      console.log(x);
+    }
+  })(i);
+}
+result[0](); // 0, expected 0
+result[1](); // 1, expected 1
+result[2](); // 2, expected 2
+result[3](); // 3, expected 3
+result[4](); // 4, expected 4
+
+在 GitHub 上查看 rawforloopcorrect.js
+
+耶！这样就改好了:)
+
+另外，一个非常聪明的途径就是使用 let 来代替 var，因为 let 声明的是块级作用域，因此每次 for-loop 的迭代都会创建一个新的标识符绑定。
+
+var result = [];
+for (let i = 0; i < 5; i++) {
+  result[i] = function () {
+    console.log(i);
+  };
+}
+result[0](); // 0, expected 0
+result[1](); // 1, expected 1
+result[2](); // 2, expected 2
+result[3](); // 3, expected 3
+result[4](); // 4, expected 4
+
+在 GitHub 上查看 rawforlooplet.js
+
+（感叹！）
+
+Example 2:
+
+这个例子展示了每调用一次函数就会创建一个新的单独的闭包：
+
+function iCantThinkOfAName(num, obj) {
+  // This array variable, along with the 2 parameters passed in,
+  // are 'captured' by the nested function 'doSomething'
+  var array = [1, 2, 3];
+  function doSomething(i) {
+    num += i;
+    array.push(num);
+    console.log('num: ' + num);
+    console.log('array: ' + array);
+    console.log('obj.value: ' + obj.value);
+  }
+  return doSomething;
+}
+var referenceObject = { value: 10 };
+var foo = iCantThinkOfAName(2, referenceObject); // closure #1
+var bar = iCantThinkOfAName(6, referenceObject); // closure #2
+foo(2);
+/*
+  num: 4
+  array: 1,2,3,4
+  obj.value: 10
+*/
+bar(2);
+/*
+  num: 8
+  array: 1,2,3,8
+  obj.value: 10
+*/
+referenceObject.value++;
+foo(4);
+/*
+  num: 8
+  array: 1,2,3,4,8
+  obj.value: 11
+*/
+bar(4);
+/*
+  num: 12
+  array: 1,2,3,8,12
+  obj.value: 11
+*/
+
+在 GitHub 上查看 rawiCantThinkOfAName.js
+
+在这个例子中，可以看到每次调用函数 iCantThinkOfAName 都会创建一个新的闭包，叫做foo和bar。随后对每个闭包函数的调用更新了其中的变量，表明在 iCantThinkOfAName 返回以后的很长一段时间，每个闭包中的变量仍能够继续在iCantThinkOfAName 的 doSomething 函数中继续使用。
+
+Example 3:
+
+function mysteriousCalculator(a, b) {
+      var mysteriousVariable = 3;
+      return {
+           add: function() {
+                 var result = a + b + mysteriousVariable;
+                 return toFixedTwoPlaces(result);
+           },
+           subtract: function() {
+                 var result = a - b - mysteriousVariable;
+                 return toFixedTwoPlaces(result);
+           }
+      }
+}
+function toFixedTwoPlaces(value) {
+      return value.toFixed(2);
+}
+var myCalculator = mysteriousCalculator(10.01, 2.01);
+myCalculator.add() // 15.02
+myCalculator.subtract() // 5.00
+
+在 GitHub 上查看 rawmysteriousCalculator.js
+
+可以观察到 mysteriousCalculator 在全局作用域中，并且它返回两个函数。用伪代码分析，以上例子的环境看起来是这个样子的：
+
+GlobalEnvironment = {
+  EnvironmentRecord: {
+    // built-in identifiers
+ 
+    Array: '<func>',
+    Object: '<func>',
+    // etc...
+    // custom identifiers
+    mysteriousCalculator: '<func>',
+    toFixedTwoPlaces: '<func>',
+  },
+  outer: null,
+};
+mysteriousCalculatorEnvironment = {
+  EnvironmentRecord: {
+    a: 10.01,
+    b: 2.01,
+    mysteriousVariable: 3,
+  }
+  outer: GlobalEnvironment,
+};
+addEnvironment = {
+  EnvironmentRecord: {
+    result: 15.02
+  }
+  outer: mysteriousCalculatorEnvironment,
+};
+subtractEnvironment = {
+  EnvironmentRecord: {
+    result: 5.00
+  }
+  outer: mysteriousCalculatorEnvironment,
+};
+
+
+在 GitHub 上查看 rawmysteriousCalculatorEnv.js
+
+因为我们的 add 和 subtract 函数引用了 mysteriousCalculator 函数的环境，这两个函数能够使用该环境中的变量来计算结果。
+
+Example 4:
+
+最后一个例子表明了闭包的一个非常重要的用途：保留外部作用域对一个变量的私有引用（仅通过唯一途径例如某一个特定函数来访问一个变量）。
+
+function secretPassword() {
+  var password = 'xh38sk';
+  return {
+    guessPassword: function(guess) {
+      if (guess === password) {
+        return true;
+      } else {
+        return false;
+      }
+    }
+  }
+}
+var passwordGame = secretPassword();
+passwordGame.guessPassword('heyisthisit?'); // false
+passwordGame.guessPassword('xh38sk'); // true
+
+在 GitHub 上查看 rawsecretPassword.js 
+
+这是一个非常强大的技术——它使闭包函数 guessPassword 能独家访问 password 变量，也保证了不能从外部（其他途径）访问 password。
+
+太长不想看？以下是本文摘要
+
+执行上下文是由 ECMAScript 规范所使用的一个抽象的概念，它用于追踪代码的执行状态。在任意时间点，只能有唯一一个执行上下文对应正在执行的代码。
+每个执行上下文都有一个词法环境。这个词法环境保持着标识符的绑定（即变量和与其相关联的变量），还可以引用它的外部环境。
+每个环境能够访问的标识符集叫做“作用域”。我们可以将这些作用域嵌套成为一个分级的环境链——就是我们所知的“作用域链”。
+每个函数都有一个执行上下文，它包括一个在函数中赋予变量含义的词法环境和对其父环境的引用。因为函数对环境的引用，使它看起来就像是函数“记住了”这个环境（作用域）一样。这就是一个闭包
+每当一个封闭的外部函数被调用时都会创建一个闭包。换句话说，内部函数不需要为了创建闭包而返回。
+在 JavaScript 中，闭包是词法相关的，意思是它在源代码中由它的位置而被静态地定义。
+闭包有很多实际应用案例。一个非常重要的用途就是保留外部作用域对一个变量的私有引用（仅通过唯一途径例如某一个特定函数来访问一个变量）。
+结语
+
+希望这篇文章对你有一定帮助，并且能让你在头脑中形成一个关于 JavaScript 中闭包是如何实现的模型。可以看到，理解它工作原理的细节能让人更容易看懂闭包——更不用说这会让我们在debug的时候不那么头痛。
+
+另外：人无完人，我也会犯一些错误——所以如果你发现其中的错误，请告知！
+
+相关阅读
+
+为简短期间，我省略了一些读者可能会感兴趣的话题。以下是我希望和大家分享的几个链接：
+
+什么是执行上下文的变量环境？Axel Rauschmayer博士做了一些非凡的工作来解释它。该链接是它的博文: http://www.2ality.com/2011/04/ecmascript-5-spec-lexicalenvironment.html
+不同类型的环境记录都有什么？请在这里阅读: http://www.ecma-international.org/ecma-262/6.0/#sec-environment-records
+MDN有关闭包的一篇非常好的文章:https://developer.mozilla.org/en-US/docs/Web/JavaScript/Closures
