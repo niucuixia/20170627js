@@ -1,0 +1,114 @@
+因为 HTML5 支持了 canvas，所以可以通过 API 获取图形设备的型号，比如显卡的型号。
+(function () {
+    var canvas = document.createElement('canvas'),
+        gl = canvas.getContext('experimental-webgl'),
+        debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+ 
+    console.log(gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL));
+})();
+运行这段代码就可以获取显卡的型号了，如果你在iOS的设备里运行，会获取到诸如 Apple A9 GPU 之类的信息。
+而我们知道每一代 iOS 设备的 GPU 型号都是不同的，比如 iPhone 6 是 A8，而 iPhone 6s 就是 A9。
+看到这里，你应该大概知道我的思路了，就是通过识别 GPU 的型号来辨别设备的型号。
+不过这还有个小瑕疵，有些设备是同一代，也就是 GPU 型号完全相同，比如 iPhone 6s, iPhone 6s Plus, iPhone SE。
+它们用的都是 Apple A9 GPU，怎么区分开它们呢？你会发现它们最大的不同不就是分辨率不同吗？
+而通过 JavaScript 我们又可以方便地获取屏幕分辨率，这样把两个手段综合应用一下就可以获取设备的准确型号了。
+
+
+from:https://github.com/joyqi/mobile-device-js
+
+<html>
+    <head>
+        <title>Mobile Device Example</title>
+        <script src="./device.js"></script>
+    </head>
+    <head>
+        <h1>GPU: <script>document.write(MobileDevice.getGlRenderer());</script></h1>
+        <h1>Device Models: <script>document.write(MobileDevice.getModels().join(' or '));</script></h1>
+    </head>
+</html>
+
+<script>
+(function () {
+    var canvas, gl, glRenderer, models,
+        devices = {
+            "Apple A7 GPU": {
+                1136: ["iPhone 5", "iPhone 5s"],
+                2048: ["iPad Air", "iPad Mini 2", "iPad Mini 3"]
+            },
+
+            "Apple A8 GPU": {
+                1136: ["iPod touch (6th generation)"],
+                1334: ["iPhone 6"],
+                2001: ["iPhone 6 Plus"],
+                2048: ["iPad Air 2", "iPad Mini 4"]
+            },
+
+            "Apple A9 GPU": {
+                1136: ["iPhone SE"],
+                1334: ["iPhone 6s"],
+                2001: ["iPhone 6s Plus"],
+                2224: ["iPad Pro (9.7-inch)"],
+                2732: ["iPad Pro (12.9-inch)"]
+            },
+
+            "Apple A10 GPU": {
+                1334: ["iPhone 7"],
+                2001: ["iPhone 7 Plus"]
+            }
+        };
+
+    function getCanvas() {
+        if (canvas == null) {
+            canvas = document.createElement('canvas');
+        }
+
+        return canvas;
+    }
+
+    function getGl() {
+        if (gl == null) {
+            gl = getCanvas().getContext('experimental-webgl');
+        }
+
+        return gl;
+    }
+
+    function getScreenWidth() {
+        return Math.max(screen.width, screen.height) * (window.devicePixelRatio || 1);
+    }
+
+    function getGlRenderer() {
+        if (glRenderer == null) {
+            debugInfo = getGl().getExtension('WEBGL_debug_renderer_info');
+            glRenderer = debugInfo == null ? 'unknown' : getGl().getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+        }
+
+        return glRenderer;
+    }
+
+    function getModels() {
+        if (models == null) {
+            var device = devices[getGlRenderer()];
+
+            if (device == undefined) {
+                models = ['unknown'];
+            } else {
+                models = device[getScreenWidth()];
+
+                if (models == undefined) {
+                    models = ['unknown'];
+                }
+            }
+        }
+
+        return models;
+    }
+
+    if (window.MobileDevice == undefined) {
+        window.MobileDevice = {};
+    }
+
+    window.MobileDevice.getGlRenderer = getGlRenderer;
+    window.MobileDevice.getModels = getModels;
+})();
+</script>
