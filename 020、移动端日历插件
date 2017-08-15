@@ -13,6 +13,10 @@
 
 ...
 <input type="text" readonly="" name="input_date" placeholder="请输入日期" data-lcalendar="2000-01-01,2018-01-29" />
+
+<input type="text" id="startTime" onfocus="this.blur();" placeholder="请选择任务开始时间">
+
+增加onfocus="this.blur()" 是为了禁止ios端调用软键盘
 ...
 将样式文件引入到页面中：
 
