@@ -1,0 +1,10 @@
+var arr = ['厨师','主持','厨师','主持','厨师'];
+var obj = {};
+for(var i=0; i<arr.length;i++){
+    if(obj[arr[i]]){
+       obj[arr[i]] += 1;
+    }else{
+       obj[arr[i]] = 1;
+    }
+}
+console.log(obj); // {厨师: 3,主持:2}
