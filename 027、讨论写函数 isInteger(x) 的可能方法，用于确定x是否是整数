@@ -1,0 +1,5 @@
+1、function isInteger(x) { return (x^0) === x; }
+
+2、function isInteger(x) { return Math.round(x) === x; }
+
+3、function isInteger(x) { return (typeof x === 'number') && (x % 1 === 0);
