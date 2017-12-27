@@ -1,37 +1,48 @@
+//获得当前时间
+function getToday(){
+	var date = new Date();
+	var year = date.getFullYear();
+	var month = date.getMonth() + 1 < 10 ? '0' + (date.getMonth() + 1) : (date.getMonth() + 1);
+	var day = date.getDate() < 10 ? '0' + date.getDate() : date.getDate();
+	var nowDate = year + '-' + month + '-' + day;
+	return nowDate;
+}
+
+
 //例如： 当前日期为 2017年11月1日 获取 2017年 12月1日
 //获取当前时间
-			function getNowFormatDate() {
-			    var date = new Date(); // 当前时间
-			    var seperator1 = "-";
-			    var year = date.getFullYear();
-			    var month = date.getMonth() + 1;
-			    var strDate = date.getDate();
-			    if(strDate == 32){
-			    	strDate = 1;
-			    	month += 1;
-			    	if(month > 12) {
-			    		month = 01;
-			    		year += 1;
-			    	}
-			    }
-			    if (month >= 1 && month <= 9) {
-			        month = "0" + month;
-			    }
-			    if (strDate >= 0 && strDate <= 9) {
-			        strDate = "0" + strDate;
-			    }
-			    
-			  	//获取当前最小时间 minDate
-			    var minDate = year + seperator1 + month + seperator1 + strDate;
-			  	
-			  	//获取30天后的日期  maxDate
-			   var da = (minDate.replace(/-/g, "/"))     // 把2016-05-24 转换为2016/05/24 
-			   var dd = new Date(da); 
-			   dd.setDate(dd.getDate()+30);//获取30天后的日期 
-			   var y = dd.getFullYear(); 
-			   var m = (dd.getMonth()+1) < 10 ? "0" + (dd.getMonth()+1) : (dd.getMonth()+1);//获取当前月份的日期，不足10补0
-			   var d = dd.getDate() < 10 ? "0" + dd.getDate() : dd.getDate(); //获取当前几号，不足10补0
-			   var maxDate = y + seperator1 + m + seperator1 + d;
-		       return {minDate: minDate, maxDate: maxDate};
-			}
+function getNowFormatDate() {
+    var date = new Date(); // 当前时间
+    var seperator1 = "-";
+    var year = date.getFullYear();
+    var month = date.getMonth() + 1;
+    var strDate = date.getDate();
+    if(strDate == 32){
+	strDate = 1;
+	month += 1;
+	if(month > 12) {
+		month = 01;
+		year += 1;
+	}
+    }
+    if (month >= 1 && month <= 9) {
+	month = "0" + month;
+    }
+    if (strDate >= 0 && strDate <= 9) {
+	strDate = "0" + strDate;
+    }
+
+	//获取当前最小时间 minDate
+    var minDate = year + seperator1 + month + seperator1 + strDate;
+
+	//获取30天后的日期  maxDate
+   var da = (minDate.replace(/-/g, "/"))     // 把2016-05-24 转换为2016/05/24 
+   var dd = new Date(da); 
+   dd.setDate(dd.getDate()+30);//获取30天后的日期 
+   var y = dd.getFullYear(); 
+   var m = (dd.getMonth()+1) < 10 ? "0" + (dd.getMonth()+1) : (dd.getMonth()+1);//获取当前月份的日期，不足10补0
+   var d = dd.getDate() < 10 ? "0" + dd.getDate() : dd.getDate(); //获取当前几号，不足10补0
+   var maxDate = y + seperator1 + m + seperator1 + d;
+   return {minDate: minDate, maxDate: maxDate};
+}
 			
