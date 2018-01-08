@@ -12,6 +12,11 @@ function maxArr(arr){
 function minArr(arr){
     return Math.min.apply(null,arr);
 }
+或者通过使用最新的扩展语句spread operator，获得数组中的最大值变得更容易。
+
+var arr = [1, 2, 3];
+var max = Math.max(...arr);
+var min = Math.min(...arr);
 
 //3、数组求和，平均值
 
