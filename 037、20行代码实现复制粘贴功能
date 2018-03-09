@@ -1,3 +1,5 @@
+from : https://github.com/axuebin/articles/issues/26
+
 <label for="website">Website:</label>
 <input type="text" id="website" value="http://www.sitepoint.com/" />
 <button data-copytarget="#website">copy</button>
