@@ -1,0 +1,4 @@
+<input type="number" v-model="price" placeholder="请输入转让单价..."
+       style="ime-mode:disabled;"
+       onkeypress="return event.which === 8 ? true : (String.fromCharCode(event.keyCode || event.which) === '.' ? true : /[\d]/.test(String.fromCharCode(event.keyCode || event.which)));"      
+>
